@@ -879,7 +879,7 @@ bool VescInterface::swdUploadFw(QByteArray newFirmware, uint32_t startAddr,
                                 bool verify, bool isLzo)
 {
     bool supportsLzo = mCommands->getLimitedCompatibilityCommands().
-            contains(int(COMM_BM_WRITE_FLASH_LZO));
+            contains(int(VescEnums::CommPacketId::COMM_BM_WRITE_FLASH_LZO));
 
     auto waitBmWriteRes = [this]() {
         int res = -10;
@@ -935,7 +935,7 @@ bool VescInterface::swdUploadFw(QByteArray newFirmware, uint32_t startAddr,
 
             if (verify && (!mCommands->isLimitedMode() ||
                            mCommands->getLimitedCompatibilityCommands().
-                           contains(int(COMM_BM_MEM_READ)))) {
+                           contains(int(VescEnums::CommPacketId::COMM_BM_MEM_READ)))) {
                 mCommands->bmReadMem(addr, chunk.size());
                 QByteArray rdData = waitBmReadRes();
 
@@ -1200,7 +1200,7 @@ bool VescInterface::fwUpload(QByteArray &newFirmware, bool isBootloader, bool fw
     }
 
     bool supportsLzo = mCommands->getLimitedCompatibilityCommands().
-            contains(int(COMM_WRITE_NEW_APP_DATA_LZO));
+            contains(int(VescEnums::CommPacketId::COMM_WRITE_NEW_APP_DATA_LZO));
 
     auto waitWriteRes = [this]() {
         int res = -10;
@@ -2650,7 +2650,7 @@ void VescInterface::packetDataToSend(QByteArray &data)
         // Since we already are on the CAN-bus, we can send packets that
         // are supposed to be forwarded directly to the correct device.
         int target_id = mLastCanDeviceID;
-        if (data.at(0) == COMM_FORWARD_CAN) {
+        if (data.at(0) == VescEnums::CommPacketId::COMM_FORWARD_CAN) {
             target_id = uint8_t(data.at(1));
             data.remove(0, 2);
         }
@@ -2799,110 +2799,110 @@ void VescInterface::fwVersionReceived(int major, int minor, QString hw, QByteArr
 
     QVector<int> compCommands;
     if (fw_connected >= qMakePair(3, 47)) {
-        compCommands.append(int(COMM_GET_VALUES));
-        compCommands.append(int(COMM_SET_DUTY));
-        compCommands.append(int(COMM_SET_CURRENT));
-        compCommands.append(int(COMM_SET_CURRENT_BRAKE));
-        compCommands.append(int(COMM_SET_RPM));
-        compCommands.append(int(COMM_SET_POS));
-        compCommands.append(int(COMM_SET_HANDBRAKE));
-        compCommands.append(int(COMM_SET_DETECT));
-        compCommands.append(int(COMM_SET_SERVO_POS));
-        compCommands.append(int(COMM_SAMPLE_PRINT));
-        compCommands.append(int(COMM_TERMINAL_CMD));
-        compCommands.append(int(COMM_PRINT));
-        compCommands.append(int(COMM_ROTOR_POSITION));
-        compCommands.append(int(COMM_EXPERIMENT_SAMPLE));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_VALUES));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_DUTY));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_CURRENT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_CURRENT_BRAKE));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_RPM));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_POS));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_HANDBRAKE));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_DETECT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_SERVO_POS));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SAMPLE_PRINT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_TERMINAL_CMD));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_PRINT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_ROTOR_POSITION));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_EXPERIMENT_SAMPLE));
 
         // TODO: Maybe detect shouldn't be backwards compatible.
-        compCommands.append(int(COMM_DETECT_MOTOR_PARAM));
-        compCommands.append(int(COMM_DETECT_MOTOR_R_L));
-        compCommands.append(int(COMM_DETECT_MOTOR_FLUX_LINKAGE));
-        compCommands.append(int(COMM_DETECT_ENCODER));
-        compCommands.append(int(COMM_DETECT_HALL_FOC));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_DETECT_MOTOR_PARAM));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_DETECT_MOTOR_R_L));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_DETECT_MOTOR_FLUX_LINKAGE));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_DETECT_ENCODER));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_DETECT_HALL_FOC));
 
-        compCommands.append(int(COMM_REBOOT));
-        compCommands.append(int(COMM_ALIVE));
-        compCommands.append(int(COMM_GET_DECODED_PPM));
-        compCommands.append(int(COMM_GET_DECODED_ADC));
-        compCommands.append(int(COMM_GET_DECODED_CHUK));
-        compCommands.append(int(COMM_FORWARD_CAN));
-        compCommands.append(int(COMM_SET_CHUCK_DATA));
-        compCommands.append(int(COMM_CUSTOM_APP_DATA));
-        compCommands.append(int(COMM_NRF_START_PAIRING));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_REBOOT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_ALIVE));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_DECODED_PPM));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_DECODED_ADC));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_DECODED_CHUK));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_FORWARD_CAN));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_CHUCK_DATA));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_CUSTOM_APP_DATA));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_NRF_START_PAIRING));
 
         // GPD stuff is quite experimental...
-        compCommands.append(int(COMM_GPD_SET_FSW));
-        compCommands.append(int(COMM_GPD_BUFFER_NOTIFY));
-        compCommands.append(int(COMM_GPD_BUFFER_SIZE_LEFT));
-        compCommands.append(int(COMM_GPD_FILL_BUFFER));
-        compCommands.append(int(COMM_GPD_OUTPUT_SAMPLE));
-        compCommands.append(int(COMM_GPD_SET_MODE));
-        compCommands.append(int(COMM_GPD_FILL_BUFFER_INT8));
-        compCommands.append(int(COMM_GPD_FILL_BUFFER_INT16));
-        compCommands.append(int(COMM_GPD_SET_BUFFER_INT_SCALE));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GPD_SET_FSW));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GPD_BUFFER_NOTIFY));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GPD_BUFFER_SIZE_LEFT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GPD_FILL_BUFFER));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GPD_OUTPUT_SAMPLE));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GPD_SET_MODE));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GPD_FILL_BUFFER_INT8));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GPD_FILL_BUFFER_INT16));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GPD_SET_BUFFER_INT_SCALE));
 
-        compCommands.append(int(COMM_GET_VALUES_SETUP));
-        compCommands.append(int(COMM_SET_MCCONF_TEMP));
-        compCommands.append(int(COMM_SET_MCCONF_TEMP_SETUP));
-        compCommands.append(int(COMM_GET_VALUES_SELECTIVE));
-        compCommands.append(int(COMM_GET_VALUES_SETUP_SELECTIVE));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_VALUES_SETUP));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_MCCONF_TEMP));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_MCCONF_TEMP_SETUP));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_VALUES_SELECTIVE));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_VALUES_SETUP_SELECTIVE));
 
         // TODO: Maybe detect shouldn't be backwards compatible.
-        compCommands.append(int(COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP));
-        compCommands.append(int(COMM_DETECT_APPLY_ALL_FOC));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_DETECT_APPLY_ALL_FOC));
 
-        compCommands.append(int(COMM_PING_CAN));
-        compCommands.append(int(COMM_APP_DISABLE_OUTPUT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_PING_CAN));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_APP_DISABLE_OUTPUT));
     }
 
     if (fw_connected >= qMakePair(3, 52)) {
-        compCommands.append(int(COMM_TERMINAL_CMD_SYNC));
-        compCommands.append(int(COMM_GET_IMU_DATA));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_TERMINAL_CMD_SYNC));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_IMU_DATA));
     }
 
     if (fw_connected >= qMakePair(3, 54)) {
-        compCommands.append(int(COMM_BM_CONNECT));
-        compCommands.append(int(COMM_BM_ERASE_FLASH_ALL));
-        compCommands.append(int(COMM_BM_WRITE_FLASH));
-        compCommands.append(int(COMM_BM_REBOOT));
-        compCommands.append(int(COMM_BM_DISCONNECT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_BM_CONNECT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_BM_ERASE_FLASH_ALL));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_BM_WRITE_FLASH));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_BM_REBOOT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_BM_DISCONNECT));
     }
 
     if (fw_connected >= qMakePair(3, 59)) {
-        compCommands.append(int(COMM_BM_MAP_PINS_DEFAULT));
-        compCommands.append(int(COMM_BM_MAP_PINS_NRF5X));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_BM_MAP_PINS_DEFAULT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_BM_MAP_PINS_NRF5X));
     }
 
     if (fw_connected >= qMakePair(3, 60)) {
-        compCommands.append(int(COMM_PLOT_INIT));
-        compCommands.append(int(COMM_PLOT_DATA));
-        compCommands.append(int(COMM_PLOT_ADD_GRAPH));
-        compCommands.append(int(COMM_PLOT_SET_GRAPH));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_PLOT_INIT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_PLOT_DATA));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_PLOT_ADD_GRAPH));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_PLOT_SET_GRAPH));
     }
 
     if (fw_connected >= qMakePair(3, 62)) {
-        compCommands.append(int(COMM_GET_DECODED_BALANCE));
-        compCommands.append(int(COMM_BM_MEM_READ));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_DECODED_BALANCE));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_BM_MEM_READ));
     }
 
     if (fw_connected >= qMakePair(3, 63)) {
-        compCommands.append(int(COMM_WRITE_NEW_APP_DATA_LZO));
-        compCommands.append(int(COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO));
-        compCommands.append(int(COMM_BM_WRITE_FLASH_LZO));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_WRITE_NEW_APP_DATA_LZO));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_BM_WRITE_FLASH_LZO));
     }
 
     if (fw_connected >= qMakePair(3, 64)) {
-        compCommands.append(int(COMM_SET_CURRENT_REL));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_CURRENT_REL));
     }
 
     if (fwPairs.contains(fw_connected) || Utility::configSupportedFws().contains(fw_connected)) {
-        compCommands.append(int(COMM_SET_MCCONF));
-        compCommands.append(int(COMM_GET_MCCONF));
-        compCommands.append(int(COMM_GET_MCCONF_DEFAULT));
-        compCommands.append(int(COMM_SET_APPCONF));
-        compCommands.append(int(COMM_GET_APPCONF));
-        compCommands.append(int(COMM_GET_APPCONF_DEFAULT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_MCCONF));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_MCCONF));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_MCCONF_DEFAULT));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_SET_APPCONF));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_APPCONF));
+        compCommands.append(int(VescEnums::CommPacketId::COMM_GET_APPCONF_DEFAULT));
 
         if (!fwPairs.contains(fw_connected)) {
             Utility::configLoad(this, fw_connected.first, fw_connected.second);

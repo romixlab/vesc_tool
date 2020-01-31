@@ -95,10 +95,12 @@ int Commands::getCanSendId()
 void Commands::processPacket(QByteArray data)
 {
     VByteArray vb(data);
-    COMM_PACKET_ID id = COMM_PACKET_ID(vb.vbPopFrontUint8());
+    VescEnums::CommPacketId id = VescEnums::CommPacketId(vb.vbPopFrontUint8());
+
+    qDebug() << " id:" << id << data.length() << data.toHex(' ') << "]";
 
     switch (id) {
-    case COMM_FW_VERSION: {
+    case VescEnums::CommPacketId::COMM_FW_VERSION: {
         mTimeoutFwVer = 0;
         int fw_major = -1;
         int fw_minor = -1;
@@ -124,25 +126,25 @@ void Commands::processPacket(QByteArray data)
         emit fwVersionReceived(fw_major, fw_minor, hw, uuid, isPaired);
     } break;
 
-    case COMM_ERASE_NEW_APP:
+    case VescEnums::CommPacketId::COMM_ERASE_NEW_APP:
         emit eraseNewAppResReceived(vb.at(0));
         break;
 
-    case COMM_WRITE_NEW_APP_DATA:
+    case VescEnums::CommPacketId::COMM_WRITE_NEW_APP_DATA:
         emit writeNewAppDataResReceived(vb.at(0));
         break;
 
-    case COMM_ERASE_BOOTLOADER:
+    case VescEnums::CommPacketId::COMM_ERASE_BOOTLOADER:
         emit eraseBootloaderResReceived(vb.at(0));
         break;
 
-    case COMM_GET_VALUES:
-    case COMM_GET_VALUES_SELECTIVE: {
+    case VescEnums::CommPacketId::COMM_GET_VALUES:
+    case VescEnums::CommPacketId::COMM_GET_VALUES_SELECTIVE: {
         mTimeoutValues = 0;
         MC_VALUES values;
 
         uint32_t mask = 0xFFFFFFFF;
-        if (id == COMM_GET_VALUES_SELECTIVE) {
+        if (id == VescEnums::CommPacketId::COMM_GET_VALUES_SELECTIVE) {
             mask = vb.vbPopFrontUint32();
         }
 
@@ -232,19 +234,19 @@ void Commands::processPacket(QByteArray data)
         emit valuesReceived(values, mask);
     } break;
 
-    case COMM_PRINT:
+    case VescEnums::CommPacketId::COMM_PRINT:
         emit printReceived(QString::fromLatin1(vb));
         break;
 
-    case COMM_SAMPLE_PRINT:
+    case VescEnums::CommPacketId::COMM_SAMPLE_PRINT:
         emit samplesReceived(vb);
         break;
 
-    case COMM_ROTOR_POSITION:
+    case VescEnums::CommPacketId::COMM_ROTOR_POSITION:
         emit rotorPosReceived(vb.vbPopFrontDouble32(1e5));
         break;
 
-    case COMM_EXPERIMENT_SAMPLE: {
+    case VescEnums::CommPacketId::COMM_EXPERIMENT_SAMPLE: {
         QVector<double> samples;
         while (!vb.isEmpty()) {
             samples.append(vb.vbPopFrontDouble32(1e4));
@@ -252,8 +254,8 @@ void Commands::processPacket(QByteArray data)
         emit experimentSamplesReceived(samples);
     } break;
 
-    case COMM_GET_MCCONF:
-    case COMM_GET_MCCONF_DEFAULT:
+    case VescEnums::CommPacketId::COMM_GET_MCCONF:
+    case VescEnums::CommPacketId::COMM_GET_MCCONF_DEFAULT:
         mTimeoutMcconf = 0;
         if (mMcConfig) {
             if (mMcConfig->deSerialize(vb)) {
@@ -269,8 +271,8 @@ void Commands::processPacket(QByteArray data)
         }
         break;
 
-    case COMM_GET_APPCONF:
-    case COMM_GET_APPCONF_DEFAULT:
+    case VescEnums::CommPacketId::COMM_GET_APPCONF:
+    case VescEnums::CommPacketId::COMM_GET_APPCONF_DEFAULT:
         mTimeoutAppconf = 0;
         if (mAppConfig) {
             if (mAppConfig->deSerialize(vb)) {
@@ -281,7 +283,7 @@ void Commands::processPacket(QByteArray data)
         }
         break;
 
-    case COMM_DETECT_MOTOR_PARAM: {
+    case VescEnums::CommPacketId::COMM_DETECT_MOTOR_PARAM: {
         bldc_detect param;
         param.cycle_int_limit = vb.vbPopFrontDouble32(1e3);
         param.bemf_coupling_k = vb.vbPopFrontDouble32(1e3);
@@ -292,24 +294,24 @@ void Commands::processPacket(QByteArray data)
         emit bldcDetectReceived(param);
     } break;
 
-    case COMM_DETECT_MOTOR_R_L: {
+    case VescEnums::CommPacketId::COMM_DETECT_MOTOR_R_L: {
         double r = vb.vbPopFrontDouble32(1e6);
         double l = vb.vbPopFrontDouble32(1e3);
         emit motorRLReceived(r, l);
     } break;
 
-    case COMM_DETECT_MOTOR_FLUX_LINKAGE: {
+    case VescEnums::CommPacketId::COMM_DETECT_MOTOR_FLUX_LINKAGE: {
         emit motorLinkageReceived(vb.vbPopFrontDouble32(1e7));
     } break;
 
-    case COMM_DETECT_ENCODER: {
+    case VescEnums::CommPacketId::COMM_DETECT_ENCODER: {
         double offset = vb.vbPopFrontDouble32(1e6);
         double ratio = vb.vbPopFrontDouble32(1e6);
         bool inverted = vb.vbPopFrontInt8();
         emit encoderParamReceived(offset, ratio, inverted);
     } break;
 
-    case COMM_DETECT_HALL_FOC: {
+    case VescEnums::CommPacketId::COMM_DETECT_HALL_FOC: {
         QVector<int> table;
         for (int i = 0;i < 8;i++) {
             table.append(vb.vbPopFrontUint8());
@@ -318,14 +320,14 @@ void Commands::processPacket(QByteArray data)
         emit focHallTableReceived(table, res);
     } break;
 
-    case COMM_GET_DECODED_PPM: {
+    case VescEnums::CommPacketId::COMM_GET_DECODED_PPM: {
         mTimeoutDecPpm = 0;
         double dec_ppm = vb.vbPopFrontDouble32(1e6);
         double ppm_last_len = vb.vbPopFrontDouble32(1e6);
         emit decodedPpmReceived(dec_ppm, ppm_last_len);
     } break;
 
-    case COMM_GET_DECODED_ADC: {
+    case VescEnums::CommPacketId::COMM_GET_DECODED_ADC: {
         mTimeoutDecAdc = 0;
         double dec_adc = vb.vbPopFrontDouble32(1e6);
         double dec_adc_voltage = vb.vbPopFrontDouble32(1e6);
@@ -334,12 +336,12 @@ void Commands::processPacket(QByteArray data)
         emit decodedAdcReceived(dec_adc, dec_adc_voltage, dec_adc2, dec_adc_voltage2);
     } break;
 
-    case COMM_GET_DECODED_CHUK:
+    case VescEnums::CommPacketId::COMM_GET_DECODED_CHUK:
         mTimeoutDecChuk = 0;
         emit decodedChukReceived(vb.vbPopFrontDouble32(1000000.0));
         break;
 
-    case COMM_GET_DECODED_BALANCE: {
+    case VescEnums::CommPacketId::COMM_GET_DECODED_BALANCE: {
         mTimeoutDecBalance = 0;
 
         BALANCE_VALUES values;
@@ -355,37 +357,37 @@ void Commands::processPacket(QByteArray data)
         emit decodedBalanceReceived(values);
     } break;
 
-    case COMM_SET_MCCONF:
+    case VescEnums::CommPacketId::COMM_SET_MCCONF:
         emit ackReceived("MCCONF Write OK");
         break;
 
-    case COMM_SET_APPCONF:
+    case VescEnums::CommPacketId::COMM_SET_APPCONF:
         emit ackReceived("APPCONF Write OK");
         break;
 
-    case COMM_CUSTOM_APP_DATA:
+    case VescEnums::CommPacketId::COMM_CUSTOM_APP_DATA:
         emit customAppDataReceived(vb);
         break;
 
-    case COMM_NRF_START_PAIRING:
+    case VescEnums::CommPacketId::COMM_NRF_START_PAIRING:
         emit nrfPairingRes(NRF_PAIR_RES(vb.vbPopFrontInt8()));
         break;
 
-    case COMM_GPD_BUFFER_NOTIFY:
+    case VescEnums::CommPacketId::COMM_GPD_BUFFER_NOTIFY:
         emit gpdBufferNotifyReceived();
         break;
 
-    case COMM_GPD_BUFFER_SIZE_LEFT:
+    case VescEnums::CommPacketId::COMM_GPD_BUFFER_SIZE_LEFT:
         emit gpdBufferSizeLeftReceived(vb.vbPopFrontInt16());
         break;
 
-    case COMM_GET_VALUES_SETUP:
-    case COMM_GET_VALUES_SETUP_SELECTIVE: {
+    case VescEnums::CommPacketId::COMM_GET_VALUES_SETUP:
+    case VescEnums::CommPacketId::COMM_GET_VALUES_SETUP_SELECTIVE: {
         mTimeoutValuesSetup = 0;
         SETUP_VALUES values;
 
         uint32_t mask = 0xFFFFFFFF;
-        if (id == COMM_GET_VALUES_SETUP_SELECTIVE) {
+        if (id == VescEnums::CommPacketId::COMM_GET_VALUES_SETUP_SELECTIVE) {
             mask = vb.vbPopFrontUint32();
         }
 
@@ -454,23 +456,23 @@ void Commands::processPacket(QByteArray data)
         emit valuesSetupReceived(values, mask);
     } break;
 
-    case COMM_SET_MCCONF_TEMP:
-        emit ackReceived("COMM_SET_MCCONF_TEMP Write OK");
+    case VescEnums::CommPacketId::COMM_SET_MCCONF_TEMP:
+        emit ackReceived("VescEnums::CommPacketId::COMM_SET_MCCONF_TEMP Write OK");
         break;
 
-    case COMM_SET_MCCONF_TEMP_SETUP:
-        emit ackReceived("COMM_SET_MCCONF_TEMP_SETUP Write OK");
+    case VescEnums::CommPacketId::COMM_SET_MCCONF_TEMP_SETUP:
+        emit ackReceived("VescEnums::CommPacketId::COMM_SET_MCCONF_TEMP_SETUP Write OK");
         break;
 
-    case COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP:
+    case VescEnums::CommPacketId::COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP:
         emit motorLinkageReceived(vb.vbPopFrontDouble32(1e7));
         break;
 
-    case COMM_DETECT_APPLY_ALL_FOC:
+    case VescEnums::CommPacketId::COMM_DETECT_APPLY_ALL_FOC:
         emit detectAllFocReceived(vb.vbPopFrontInt16());
         break;
 
-    case COMM_PING_CAN: {
+    case VescEnums::CommPacketId::COMM_PING_CAN: {
         mTimeoutPingCan = 0;
         QVector<int> devs;
         while(vb.size() > 0) {
@@ -479,7 +481,7 @@ void Commands::processPacket(QByteArray data)
         emit pingCanRx(devs, false);
     } break;
 
-    case COMM_GET_IMU_DATA: {
+    case VescEnums::CommPacketId::COMM_GET_IMU_DATA: {
         mTimeoutImuData = 0;
 
         IMU_VALUES values;
@@ -542,61 +544,61 @@ void Commands::processPacket(QByteArray data)
         emit valuesImuReceived(values, mask);
     } break;
 
-    case COMM_BM_CONNECT:
+    case VescEnums::CommPacketId::COMM_BM_CONNECT:
         emit bmConnRes(vb.vbPopFrontInt16());
         break;
 
-    case COMM_BM_ERASE_FLASH_ALL:
+    case VescEnums::CommPacketId::COMM_BM_ERASE_FLASH_ALL:
         emit bmEraseFlashAllRes(vb.vbPopFrontInt16());
         break;
 
-    case COMM_BM_WRITE_FLASH:
-    case COMM_BM_WRITE_FLASH_LZO:
+    case VescEnums::CommPacketId::COMM_BM_WRITE_FLASH:
+    case VescEnums::CommPacketId::COMM_BM_WRITE_FLASH_LZO:
         emit bmWriteFlashRes(vb.vbPopFrontInt16());
         break;
 
-    case COMM_BM_REBOOT:
+    case VescEnums::CommPacketId::COMM_BM_REBOOT:
         emit bmRebootRes(vb.vbPopFrontInt16());
         break;
 
-    case COMM_BM_DISCONNECT:
-        emit ackReceived("COMM_BM_DISCONNECT OK");
+    case VescEnums::CommPacketId::COMM_BM_DISCONNECT:
+        emit ackReceived("VescEnums::CommPacketId::COMM_BM_DISCONNECT OK");
         break;
 
-    case COMM_BM_MAP_PINS_DEFAULT:
+    case VescEnums::CommPacketId::COMM_BM_MAP_PINS_DEFAULT:
         emit bmMapPinsDefaultRes(vb.vbPopFrontInt16());
         break;
 
-    case COMM_BM_MAP_PINS_NRF5X:
+    case VescEnums::CommPacketId::COMM_BM_MAP_PINS_NRF5X:
         emit bmMapPinsNrf5xRes(vb.vbPopFrontInt16());
         break;
 
-    case COMM_PLOT_INIT: {
+    case VescEnums::CommPacketId::COMM_PLOT_INIT: {
         QString xL = vb.vbPopFrontString();
         QString yL = vb.vbPopFrontString();
         emit plotInitReceived(xL, yL);
     } break;
 
-    case COMM_PLOT_DATA: {
+    case VescEnums::CommPacketId::COMM_PLOT_DATA: {
         double x = vb.vbPopFrontDouble32Auto();
         double y = vb.vbPopFrontDouble32Auto();
         emit plotDataReceived(x, y);
     } break;
 
-    case COMM_PLOT_ADD_GRAPH: {
+    case VescEnums::CommPacketId::COMM_PLOT_ADD_GRAPH: {
         emit plotAddGraphReceived(vb.vbPopFrontString());
     } break;
 
-    case COMM_PLOT_SET_GRAPH: {
+    case VescEnums::CommPacketId::COMM_PLOT_SET_GRAPH: {
         emit plotSetGraphReceived(vb.vbPopFrontInt8());
     } break;
 
-    case COMM_BM_MEM_READ: {
+    case VescEnums::CommPacketId::COMM_BM_MEM_READ: {
         int res = vb.vbPopFrontInt16();
         emit bmReadMemRes(res, vb);
     } break;
 
-    case COMM_CAN_FWD_FRAME: {
+    case VescEnums::CommPacketId::COMM_CAN_FWD_FRAME: {
         quint32 id = vb.vbPopFrontUint32();
         bool isExtended = vb.vbPopFrontInt8();
         emit canFrameRx(vb, id, isExtended);
@@ -616,15 +618,15 @@ void Commands::getFwVersion()
     mTimeoutFwVer = mTimeoutCount;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_FW_VERSION);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_FW_VERSION);
     emitData(vb);
 }
 
 void Commands::eraseNewApp(bool fwdCan, quint32 fwSize)
 {
     VByteArray vb;
-    vb.vbAppendInt8(fwdCan ? COMM_ERASE_NEW_APP_ALL_CAN :
-                             COMM_ERASE_NEW_APP);
+    vb.vbAppendInt8(fwdCan ? VescEnums::CommPacketId::COMM_ERASE_NEW_APP_ALL_CAN :
+                             VescEnums::CommPacketId::COMM_ERASE_NEW_APP);
     vb.vbAppendUint32(fwSize);
     emitData(vb);
 }
@@ -632,16 +634,16 @@ void Commands::eraseNewApp(bool fwdCan, quint32 fwSize)
 void Commands::eraseBootloader(bool fwdCan)
 {
     VByteArray vb;
-    vb.vbAppendInt8(fwdCan ? COMM_ERASE_BOOTLOADER_ALL_CAN :
-                             COMM_ERASE_BOOTLOADER);
+    vb.vbAppendInt8(fwdCan ? VescEnums::CommPacketId::COMM_ERASE_BOOTLOADER_ALL_CAN :
+                             VescEnums::CommPacketId::COMM_ERASE_BOOTLOADER);
     emitData(vb);
 }
 
 void Commands::writeNewAppData(QByteArray data, quint32 offset, bool fwdCan)
 {
     VByteArray vb;
-    vb.vbAppendInt8(fwdCan ? COMM_WRITE_NEW_APP_DATA_ALL_CAN :
-                             COMM_WRITE_NEW_APP_DATA);
+    vb.vbAppendInt8(fwdCan ? VescEnums::CommPacketId::COMM_WRITE_NEW_APP_DATA_ALL_CAN :
+                             VescEnums::CommPacketId::COMM_WRITE_NEW_APP_DATA);
     vb.vbAppendUint32(offset);
     vb.append(data);
     emitData(vb);
@@ -650,8 +652,8 @@ void Commands::writeNewAppData(QByteArray data, quint32 offset, bool fwdCan)
 void Commands::writeNewAppDataLzo(QByteArray data, quint32 offset, quint16 decompressedLen, bool fwdCan)
 {
     VByteArray vb;
-    vb.vbAppendInt8(fwdCan ? COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO :
-                             COMM_WRITE_NEW_APP_DATA_LZO);
+    vb.vbAppendInt8(fwdCan ? VescEnums::CommPacketId::COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO :
+                             VescEnums::CommPacketId::COMM_WRITE_NEW_APP_DATA_LZO);
     vb.vbAppendUint32(offset);
     vb.vbAppendUint16(decompressedLen);
     vb.append(data);
@@ -661,8 +663,8 @@ void Commands::writeNewAppDataLzo(QByteArray data, quint32 offset, quint16 decom
 void Commands::jumpToBootloader(bool fwdCan)
 {
     VByteArray vb;
-    vb.vbAppendInt8(fwdCan ? COMM_JUMP_TO_BOOTLOADER_ALL_CAN :
-                             COMM_JUMP_TO_BOOTLOADER);
+    vb.vbAppendInt8(fwdCan ? VescEnums::CommPacketId::COMM_JUMP_TO_BOOTLOADER_ALL_CAN :
+                             VescEnums::CommPacketId::COMM_JUMP_TO_BOOTLOADER);
     emitData(vb);
 }
 
@@ -675,14 +677,14 @@ void Commands::getValues()
     mTimeoutValues = mTimeoutCount;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_VALUES);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_VALUES);
     emitData(vb);
 }
 
 void Commands::sendTerminalCmd(QString cmd)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_TERMINAL_CMD);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_TERMINAL_CMD);
     vb.append(cmd.toLatin1());
     emitData(vb);
 }
@@ -690,7 +692,7 @@ void Commands::sendTerminalCmd(QString cmd)
 void Commands::sendTerminalCmdSync(QString cmd)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_TERMINAL_CMD_SYNC);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_TERMINAL_CMD_SYNC);
     vb.append(cmd.toLatin1());
     emitData(vb);
 }
@@ -698,7 +700,7 @@ void Commands::sendTerminalCmdSync(QString cmd)
 void Commands::setDutyCycle(double dutyCycle)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_SET_DUTY);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SET_DUTY);
     vb.vbAppendDouble32(dutyCycle, 1e5);
     emitData(vb);
 }
@@ -706,7 +708,7 @@ void Commands::setDutyCycle(double dutyCycle)
 void Commands::setCurrent(double current)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_SET_CURRENT);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SET_CURRENT);
     vb.vbAppendDouble32(current, 1e3);
     emitData(vb);
 }
@@ -714,7 +716,7 @@ void Commands::setCurrent(double current)
 void Commands::setCurrentBrake(double current)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_SET_CURRENT_BRAKE);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SET_CURRENT_BRAKE);
     vb.vbAppendDouble32(current, 1e3);
     emitData(vb);
 }
@@ -722,7 +724,7 @@ void Commands::setCurrentBrake(double current)
 void Commands::setRpm(int rpm)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_SET_RPM);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SET_RPM);
     vb.vbAppendInt32(rpm);
     emitData(vb);
 }
@@ -730,7 +732,7 @@ void Commands::setRpm(int rpm)
 void Commands::setPos(double pos)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_SET_POS);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SET_POS);
     vb.vbAppendDouble32(pos, 1e6);
     emitData(vb);
 }
@@ -738,7 +740,7 @@ void Commands::setPos(double pos)
 void Commands::setHandbrake(double current)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_SET_HANDBRAKE);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SET_HANDBRAKE);
     vb.vbAppendDouble32(current, 1e3);
     emitData(vb);
 }
@@ -746,7 +748,7 @@ void Commands::setHandbrake(double current)
 void Commands::setDetect(disp_pos_mode mode)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_SET_DETECT);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SET_DETECT);
     vb.vbAppendInt8(mode);
     emitData(vb);
 }
@@ -754,7 +756,7 @@ void Commands::setDetect(disp_pos_mode mode)
 void Commands::samplePrint(debug_sampling_mode mode, int sample_len, int dec)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_SAMPLE_PRINT);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SAMPLE_PRINT);
     vb.vbAppendInt8(mode);
     vb.vbAppendUint16(sample_len);
     vb.vbAppendUint8(dec);
@@ -771,7 +773,7 @@ void Commands::getMcconf()
 
     mCheckNextMcConfig = false;
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_MCCONF);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_MCCONF);
     emitData(vb);
 }
 
@@ -785,7 +787,7 @@ void Commands::getMcconfDefault()
 
     mCheckNextMcConfig = false;
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_MCCONF_DEFAULT);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_MCCONF_DEFAULT);
     emitData(vb);
 }
 
@@ -794,7 +796,7 @@ void Commands::setMcconf(bool check)
     if (mMcConfig) {
         mMcConfigLast = *mMcConfig;
         VByteArray vb;
-        vb.vbAppendInt8(COMM_SET_MCCONF);
+        vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SET_MCCONF);
         mMcConfig->serialize(vb);
         emitData(vb);
 
@@ -813,7 +815,7 @@ void Commands::getAppConf()
     mTimeoutAppconf = mTimeoutCount;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_APPCONF);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_APPCONF);
     emitData(vb);
 }
 
@@ -826,7 +828,7 @@ void Commands::getAppConfDefault()
     mTimeoutAppconf = mTimeoutCount;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_APPCONF_DEFAULT);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_APPCONF_DEFAULT);
     emitData(vb);
 }
 
@@ -834,7 +836,7 @@ void Commands::setAppConf()
 {
     if (mAppConfig) {
         VByteArray vb;
-        vb.vbAppendInt8(COMM_SET_APPCONF);
+        vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SET_APPCONF);
         mAppConfig->serialize(vb);
         emitData(vb);
     }
@@ -843,7 +845,7 @@ void Commands::setAppConf()
 void Commands::detectMotorParam(double current, double min_rpm, double low_duty)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_DETECT_MOTOR_PARAM);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_DETECT_MOTOR_PARAM);
     vb.vbAppendDouble32(current, 1e3);
     vb.vbAppendDouble32(min_rpm, 1e3);
     vb.vbAppendDouble32(low_duty, 1e3);
@@ -853,14 +855,14 @@ void Commands::detectMotorParam(double current, double min_rpm, double low_duty)
 void Commands::reboot()
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_REBOOT);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_REBOOT);
     emitData(vb);
 }
 
 void Commands::sendAlive()
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_ALIVE);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_ALIVE);
     emitData(vb);
 }
 
@@ -873,7 +875,7 @@ void Commands::getDecodedPpm()
     mTimeoutDecPpm = mTimeoutCount;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_DECODED_PPM);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_DECODED_PPM);
     emitData(vb);
 }
 
@@ -886,7 +888,7 @@ void Commands::getDecodedAdc()
     mTimeoutDecAdc = mTimeoutCount;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_DECODED_ADC);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_DECODED_ADC);
     emitData(vb);
 }
 
@@ -899,7 +901,7 @@ void Commands::getDecodedChuk()
     mTimeoutDecChuk = mTimeoutCount;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_DECODED_CHUK);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_DECODED_CHUK);
     emitData(vb);
 }
 
@@ -912,14 +914,14 @@ void Commands::getDecodedBalance()
     mTimeoutDecBalance = mTimeoutCount;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_DECODED_BALANCE);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_DECODED_BALANCE);
     emitData(vb);
 }
 
 void Commands::setServoPos(double pos)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_SET_SERVO_POS);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SET_SERVO_POS);
     vb.vbAppendDouble16(pos, 1e3);
     emitData(vb);
 }
@@ -927,14 +929,14 @@ void Commands::setServoPos(double pos)
 void Commands::measureRL()
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_DETECT_MOTOR_R_L);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_DETECT_MOTOR_R_L);
     emitData(vb);
 }
 
 void Commands::measureLinkage(double current, double min_rpm, double low_duty, double resistance)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_DETECT_MOTOR_FLUX_LINKAGE);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_DETECT_MOTOR_FLUX_LINKAGE);
     vb.vbAppendDouble32(current, 1e3);
     vb.vbAppendDouble32(min_rpm, 1e3);
     vb.vbAppendDouble32(low_duty, 1e3);
@@ -945,7 +947,7 @@ void Commands::measureLinkage(double current, double min_rpm, double low_duty, d
 void Commands::measureEncoder(double current)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_DETECT_ENCODER);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_DETECT_ENCODER);
     vb.vbAppendDouble32(current, 1e3);
     emitData(vb);
 }
@@ -953,7 +955,7 @@ void Commands::measureEncoder(double current)
 void Commands::measureHallFoc(double current)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_DETECT_HALL_FOC);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_DETECT_HALL_FOC);
     vb.vbAppendDouble32(current, 1e3);
     emitData(vb);
 }
@@ -961,7 +963,7 @@ void Commands::measureHallFoc(double current)
 void Commands::sendCustomAppData(QByteArray data)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_CUSTOM_APP_DATA);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_CUSTOM_APP_DATA);
     vb.append(data);
     emitData(vb);
 }
@@ -975,7 +977,7 @@ void Commands::sendCustomAppData(unsigned char *data, unsigned int len)
 void Commands::setChukData(chuck_data &data)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_SET_CHUCK_DATA);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SET_CHUCK_DATA);
     vb.vbAppendUint8(data.js_x);
     vb.vbAppendUint8(data.js_y);
     vb.vbAppendUint8(data.bt_c);
@@ -989,7 +991,7 @@ void Commands::setChukData(chuck_data &data)
 void Commands::pairNrf(int ms)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_NRF_START_PAIRING);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_NRF_START_PAIRING);
     vb.vbAppendInt32(ms);
     emitData(vb);
 }
@@ -997,7 +999,7 @@ void Commands::pairNrf(int ms)
 void Commands::gpdSetFsw(float fsw)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GPD_SET_FSW);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GPD_SET_FSW);
     vb.vbAppendInt32((quint32)fsw);
     emitData(vb);
 }
@@ -1005,7 +1007,7 @@ void Commands::gpdSetFsw(float fsw)
 void Commands::getGpdBufferSizeLeft()
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GPD_BUFFER_SIZE_LEFT);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GPD_BUFFER_SIZE_LEFT);
     emitData(vb);
 }
 
@@ -1018,14 +1020,14 @@ void Commands::gpdFillBuffer(QVector<float> samples)
         samples.removeFirst();
 
         if (vb.size() > 400) {
-            vb.prepend(COMM_GPD_FILL_BUFFER);
+            vb.prepend(VescEnums::CommPacketId::COMM_GPD_FILL_BUFFER);
             emitData(vb);
             vb.clear();
         }
     }
 
     if (vb.size() > 0) {
-        vb.prepend(COMM_GPD_FILL_BUFFER);
+        vb.prepend(VescEnums::CommPacketId::COMM_GPD_FILL_BUFFER);
         emitData(vb);
     }
 }
@@ -1033,7 +1035,7 @@ void Commands::gpdFillBuffer(QVector<float> samples)
 void Commands::gpdOutputSample(float sample)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GPD_OUTPUT_SAMPLE);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GPD_OUTPUT_SAMPLE);
     vb.vbAppendDouble32Auto(sample);
     emitData(vb);
 }
@@ -1041,7 +1043,7 @@ void Commands::gpdOutputSample(float sample)
 void Commands::gpdSetMode(gpd_output_mode mode)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GPD_SET_MODE);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GPD_SET_MODE);
     vb.vbAppendInt8(mode);
     emitData(vb);
 }
@@ -1055,14 +1057,14 @@ void Commands::gpdFillBufferInt8(QVector<qint8> samples)
         samples.removeFirst();
 
         if (vb.size() > 400) {
-            vb.prepend(COMM_GPD_FILL_BUFFER_INT8);
+            vb.prepend(VescEnums::CommPacketId::COMM_GPD_FILL_BUFFER_INT8);
             emitData(vb);
             vb.clear();
         }
     }
 
     if (vb.size() > 0) {
-        vb.prepend(COMM_GPD_FILL_BUFFER_INT8);
+        vb.prepend(VescEnums::CommPacketId::COMM_GPD_FILL_BUFFER_INT8);
         emitData(vb);
     }
 }
@@ -1076,14 +1078,14 @@ void Commands::gpdFillBufferInt16(QVector<qint16> samples)
         samples.removeFirst();
 
         if (vb.size() > 400) {
-            vb.prepend(COMM_GPD_FILL_BUFFER_INT16);
+            vb.prepend(VescEnums::CommPacketId::COMM_GPD_FILL_BUFFER_INT16);
             emitData(vb);
             vb.clear();
         }
     }
 
     if (vb.size() > 0) {
-        vb.prepend(COMM_GPD_FILL_BUFFER_INT16);
+        vb.prepend(VescEnums::CommPacketId::COMM_GPD_FILL_BUFFER_INT16);
         emitData(vb);
     }
 }
@@ -1091,7 +1093,7 @@ void Commands::gpdFillBufferInt16(QVector<qint16> samples)
 void Commands::gpdSetBufferIntScale(float scale)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GPD_SET_BUFFER_INT_SCALE);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GPD_SET_BUFFER_INT_SCALE);
     vb.vbAppendDouble32Auto(scale);
     emitData(vb);
 }
@@ -1105,7 +1107,7 @@ void Commands::getValuesSetup()
     mTimeoutValuesSetup = mTimeoutCount;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_VALUES_SETUP);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_VALUES_SETUP);
     emitData(vb);
 }
 
@@ -1113,7 +1115,7 @@ void Commands::setMcconfTemp(const MCCONF_TEMP &conf, bool is_setup, bool store,
                              bool forward_can, bool divide_by_controllers, bool ack)
 {
     VByteArray vb;
-    vb.vbAppendInt8(is_setup ? COMM_SET_MCCONF_TEMP_SETUP : COMM_SET_MCCONF_TEMP);
+    vb.vbAppendInt8(is_setup ? VescEnums::CommPacketId::COMM_SET_MCCONF_TEMP_SETUP : VescEnums::CommPacketId::COMM_SET_MCCONF_TEMP);
     vb.vbAppendInt8(store);
     vb.vbAppendInt8(forward_can);
     vb.vbAppendInt8(ack);
@@ -1138,7 +1140,7 @@ void Commands::getValuesSelective(unsigned int mask)
     mTimeoutValues = mTimeoutCount;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_VALUES_SELECTIVE);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_VALUES_SELECTIVE);
     vb.vbAppendUint32(mask);
     emitData(vb);
 }
@@ -1152,7 +1154,7 @@ void Commands::getValuesSetupSelective(unsigned int mask)
     mTimeoutValuesSetup = mTimeoutCount;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_VALUES_SETUP_SELECTIVE);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_VALUES_SETUP_SELECTIVE);
     vb.vbAppendUint32(mask);
     emitData(vb);
 }
@@ -1160,7 +1162,7 @@ void Commands::getValuesSetupSelective(unsigned int mask)
 void Commands::measureLinkageOpenloop(double current, double erpm_per_sec, double low_duty, double resistance)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP);
     vb.vbAppendDouble32(current, 1e3);
     vb.vbAppendDouble32(erpm_per_sec, 1e3);
     vb.vbAppendDouble32(low_duty, 1e3);
@@ -1172,7 +1174,7 @@ void Commands::detectAllFoc(bool detect_can, double max_power_loss, double min_c
                             double max_current_in, double openloop_rpm, double sl_erpm)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_DETECT_APPLY_ALL_FOC);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_DETECT_APPLY_ALL_FOC);
     vb.vbAppendInt8(detect_can);
     vb.vbAppendDouble32(max_power_loss, 1e3);
     vb.vbAppendDouble32(min_current_in, 1e3);
@@ -1191,7 +1193,7 @@ void Commands::pingCan()
     mTimeoutPingCan = 500;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_PING_CAN);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_PING_CAN);
     emitData(vb);
 }
 
@@ -1211,7 +1213,7 @@ void Commands::pingCan()
 void Commands::disableAppOutput(int time_ms, bool fwdCan)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_APP_DISABLE_OUTPUT);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_APP_DISABLE_OUTPUT);
     vb.vbAppendInt8(fwdCan);
     vb.vbAppendInt32(time_ms);
     emitData(vb);
@@ -1226,7 +1228,7 @@ void Commands::getImuData(unsigned int mask)
     mTimeoutImuData = mTimeoutCount;
 
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_IMU_DATA);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_IMU_DATA);
     vb.vbAppendUint16(mask);
     emitData(vb);
 }
@@ -1234,21 +1236,21 @@ void Commands::getImuData(unsigned int mask)
 void Commands::bmConnect()
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_BM_CONNECT);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_BM_CONNECT);
     emitData(vb);
 }
 
 void Commands::bmEraseFlashAll()
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_BM_ERASE_FLASH_ALL);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_BM_ERASE_FLASH_ALL);
     emitData(vb);
 }
 
 void Commands::bmWriteFlash(uint32_t addr, QByteArray data)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_BM_WRITE_FLASH);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_BM_WRITE_FLASH);
     vb.vbAppendUint32(addr);
     vb.append(data);
     emitData(vb);
@@ -1257,7 +1259,7 @@ void Commands::bmWriteFlash(uint32_t addr, QByteArray data)
 void Commands::bmWriteFlashLzo(uint32_t addr, quint16 decompressedLen, QByteArray data)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_BM_WRITE_FLASH_LZO);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_BM_WRITE_FLASH_LZO);
     vb.vbAppendUint32(addr);
     vb.vbAppendUint16(decompressedLen);
     vb.append(data);
@@ -1267,35 +1269,35 @@ void Commands::bmWriteFlashLzo(uint32_t addr, quint16 decompressedLen, QByteArra
 void Commands::bmReboot()
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_BM_REBOOT);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_BM_REBOOT);
     emitData(vb);
 }
 
 void Commands::bmDisconnect()
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_BM_DISCONNECT);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_BM_DISCONNECT);
     emitData(vb);
 }
 
 void Commands::bmMapPinsDefault()
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_BM_MAP_PINS_DEFAULT);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_BM_MAP_PINS_DEFAULT);
     emitData(vb);
 }
 
 void Commands::bmMapPinsNrf5x()
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_BM_MAP_PINS_NRF5X);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_BM_MAP_PINS_NRF5X);
     emitData(vb);
 }
 
 void Commands::bmReadMem(uint32_t addr, quint16 size)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_BM_MEM_READ);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_BM_MEM_READ);
     vb.vbAppendUint32(addr);
     vb.vbAppendUint16(size);
     emitData(vb);
@@ -1304,7 +1306,7 @@ void Commands::bmReadMem(uint32_t addr, quint16 size)
 void Commands::setCurrentRel(double current)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_SET_CURRENT_REL);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_SET_CURRENT_REL);
     vb.vbAppendDouble32(current, 1e5);
     emitData(vb);
 }
@@ -1312,7 +1314,7 @@ void Commands::setCurrentRel(double current)
 void Commands::forwardCanFrame(QByteArray data, quint32 id, bool isExtended)
 {
     VByteArray vb;
-    vb.vbAppendInt8(COMM_CAN_FWD_FRAME);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_CAN_FWD_FRAME);
     vb.vbAppendUint32(id);
     vb.vbAppendInt8(isExtended);
     vb.append(data);
@@ -1349,14 +1351,14 @@ void Commands::timerSlot()
 void Commands::emitData(QByteArray data)
 {
     // Only allow firmware commands in limited mode
-    if (mIsLimitedMode && data.at(0) > COMM_WRITE_NEW_APP_DATA) {
+    if (mIsLimitedMode && data.at(0) > VescEnums::CommPacketId::COMM_WRITE_NEW_APP_DATA) {
         if (!mLimitedSupportsFwdAllCan ||
-                (data.at(0) != COMM_JUMP_TO_BOOTLOADER_ALL_CAN &&
-                data.at(0) != COMM_ERASE_NEW_APP_ALL_CAN &&
-                data.at(0) != COMM_WRITE_NEW_APP_DATA_ALL_CAN)) {
+                (data.at(0) != VescEnums::CommPacketId::COMM_JUMP_TO_BOOTLOADER_ALL_CAN &&
+                data.at(0) != VescEnums::CommPacketId::COMM_ERASE_NEW_APP_ALL_CAN &&
+                data.at(0) != VescEnums::CommPacketId::COMM_WRITE_NEW_APP_DATA_ALL_CAN)) {
             if (!mLimitedSupportsEraseBootloader ||
-                    (data.at(0) != COMM_ERASE_BOOTLOADER &&
-                     data.at(0) != COMM_ERASE_BOOTLOADER_ALL_CAN)) {
+                    (data.at(0) != VescEnums::CommPacketId::COMM_ERASE_BOOTLOADER &&
+                     data.at(0) != VescEnums::CommPacketId::COMM_ERASE_BOOTLOADER_ALL_CAN)) {
 
                 if (!mCompatibilityCommands.contains(int(data.at(0)))) {
                     return;
@@ -1367,7 +1369,7 @@ void Commands::emitData(QByteArray data)
 
     if (mSendCan) {
         data.prepend((char)mCanId);
-        data.prepend((char)COMM_FORWARD_CAN);
+        data.prepend((char)VescEnums::CommPacketId::COMM_FORWARD_CAN);
     }
 
     emit dataToSend(data);
@@ -1450,7 +1452,7 @@ void Commands::checkMcConfig()
 {
     mCheckNextMcConfig = true;
     VByteArray vb;
-    vb.vbAppendInt8(COMM_GET_MCCONF);
+    vb.vbAppendInt8(VescEnums::CommPacketId::COMM_GET_MCCONF);
     emitData(vb);
 }
 

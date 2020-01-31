@@ -18,6 +18,7 @@
     */
 
 #include "packet.h"
+#include "datatypes.h"
 #include <cstring>
 #include <QDebug>
 
@@ -80,6 +81,7 @@ Packet::~Packet()
 void Packet::sendPacket(const QByteArray &data)
 {
     if (data.size() == 0 || data.size() > (int)mMaxPacketLen) {
+        qDebug() << "invalid size, ignoring";
         return;
     }
 
@@ -108,6 +110,9 @@ void Packet::sendPacket(const QByteArray &data)
     to_send.append((char)3);
 
     emit dataToSend(to_send);
+
+    VescEnums::CommPacketId id = VescEnums::CommPacketId(data.at(0));
+    qDebug() << id << to_send.length() << "[" << to_send.toHex(' ') << "]";
 }
 
 unsigned short Packet::crc16(const unsigned char *buf, unsigned int len)
@@ -121,6 +126,8 @@ unsigned short Packet::crc16(const unsigned char *buf, unsigned int len)
 
 void Packet::processData(QByteArray data)
 {
+    qDebug() << data.length() << "[" << data.toHex(' ') << "]";
+
     QVector<QByteArray> decodedPackets;
 
     for(unsigned char rx_data: data) {
@@ -184,6 +191,7 @@ void Packet::processData(QByteArray data)
     for (QByteArray b: decodedPackets) {
         emit packetReceived(b);
     }
+    qDebug() << "decoded" << decodedPackets.length() << "packets";
 }
 
 void Packet::timerSlot()
